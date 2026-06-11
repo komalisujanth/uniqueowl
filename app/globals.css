@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light;
+}
+
+@theme inline {
+  --color-primary: #7F77DD;
+  --color-primary-content: #ffffff;
+  --color-secondary: #a29bfe;
+  --color-accent: #1D9E75;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #f8f7ff;
+  color: #1a1a2e;
+}

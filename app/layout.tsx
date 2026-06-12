@@ -12,6 +12,7 @@ export default function RootLayout({ children }) {
     <html lang="en" data-theme="light">
       <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+        <meta name="google-adsense-account" content="ca-pub-2988038891687562"></meta>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

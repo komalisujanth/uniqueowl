@@ -20,7 +20,7 @@ export async function GET(req) {
 
     const user = result.rows[0];
 
-    // Reset attempts if 24 hours passed
+    // Reset ONLY free attempts every 24 hours
     const now = new Date();
     const lastReset = new Date(user.last_reset);
     const hoursSince = (now - lastReset) / (1000 * 60 * 60);
@@ -31,16 +31,18 @@ export async function GET(req) {
       attemptsUsed = 0;
     }
 
-    // Get REAL word count
     const wordCountResult = await pool.query('SELECT COUNT(*) as count FROM words');
     const totalWords = parseInt(wordCountResult.rows[0].count);
 
-    const maxAttempts = 100 + user.bonus_attempts;
+    const freeRemaining = Math.max(0, 100 - attemptsUsed);
+    const bonusRemaining = parseInt(user.bonus_attempts) || 0;
 
     return NextResponse.json({
       ...user,
       attempts_used: attemptsUsed,
-      attempts_remaining: maxAttempts - attemptsUsed,
+      free_remaining: freeRemaining,
+      bonus_remaining: bonusRemaining,
+      attempts_remaining: freeRemaining + bonusRemaining,
       total_attempts: user.total_attempts || 0,
       totalWords
     });

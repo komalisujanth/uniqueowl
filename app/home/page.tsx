@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const UNIQUE_MESSAGES = [
@@ -69,7 +69,15 @@ export default function HomePage() {
       if (!res.ok) { setError(data.error); setLoading(false); inputRef.current?.focus(); return; }
       setResult(data);
       setResultMsg(data.isUnique ? rnd(UNIQUE_MESSAGES) : rnd(DUPLICATE_MESSAGES));
-      setUser(prev => ({ ...prev, score: data.newScore, attempts_remaining: data.attemptsRemaining, total_attempts: data.totalAttempts, totalWords: data.totalWords }));
+      setUser(prev => ({
+        ...prev,
+        score: data.newScore,
+        attempts_remaining: data.attemptsRemaining,
+        free_remaining: data.free_remaining,
+        bonus_remaining: data.bonus_remaining,
+        total_attempts: data.totalAttempts,
+        totalWords: data.totalWords
+      }));
       setWord('');
       fetchLeaderboard();
     } catch { setError('Something went wrong. Try again.'); }
@@ -97,41 +105,45 @@ export default function HomePage() {
     </div>
   );
 
-  const attemptsRemaining = user.attempts_remaining ?? 100;
+  const freeRemaining = user.free_remaining ?? 100;
+  const bonusRemaining = user.bonus_remaining ?? 0;
+  const totalRemaining = freeRemaining + bonusRemaining;
   const totalAttempts = user.total_attempts ?? 0;
-  const pct = Math.max(0, Math.min(100, (attemptsRemaining / 100) * 100));
+  const pct = Math.max(0, Math.min(100, (freeRemaining / 100) * 100));
 
-  // Stats cards
+  // Stats row
   const statsRow = (
-    <div className="glass-card" style={{ padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', alignItems: 'center', marginBottom: '12px' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '32px', fontWeight: 900, color: '#7F77DD' }}>{attemptsRemaining}</div>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>left today</div>
-        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>of 100</div>
-      </div>
-      <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.08)' }}/>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '32px', fontWeight: 900 }}>{totalAttempts}</div>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>all time</div>
-        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>attempts</div>
-      </div>
-      <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.08)' }}/>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '32px', fontWeight: 900 }}>{user.totalWords || 0}</div>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>words</div>
-        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>in database</div>
+    <div className="glass-card" style={{ padding: '20px', marginBottom: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '28px', fontWeight: 900, color: '#7F77DD' }}>
+            {freeRemaining}<span style={{ fontSize: '14px', opacity: 0.4 }}>/100</span>
+          </div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>free today</div>
+          {bonusRemaining > 0 && <div style={{ fontSize: '11px', color: '#4ade80', marginTop: '2px', fontWeight: 700 }}>+{bonusRemaining} bonus</div>}
+        </div>
+        <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.08)' }}/>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '28px', fontWeight: 900 }}>{totalAttempts}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>all time</div>
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>attempts</div>
+        </div>
+        <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.08)' }}/>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '28px', fontWeight: 900 }}>{user.totalWords || 0}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>words</div>
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>in database</div>
+        </div>
       </div>
     </div>
   );
 
-  // Progress bar
   const progressBar = (
     <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden', marginBottom: '12px' }}>
       <div style={{ height: '100%', background: pct > 30 ? '#7F77DD' : '#ef4444', width: `${pct}%`, transition: 'width 0.5s ease', borderRadius: '2px' }}/>
     </div>
   );
 
-  // Word input card — key prop ensures it never remounts
   const wordCard = (
     <div className="glass-card" style={{ padding: '24px', marginBottom: '12px' }}>
       <div style={{ marginBottom: '18px' }}>
@@ -150,16 +162,13 @@ export default function HomePage() {
             value={word}
             onChange={(e) => setWord(e.target.value.replace(/[^a-zA-Z ]/g, ''))}
             maxLength={20}
-            disabled={attemptsRemaining === 0 || loading}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
+            disabled={totalRemaining === 0 || loading}
+            autoComplete="off" autoCorrect="off" spellCheck={false}
             autoFocus
-            
             className="input-owl"
             style={{ flex: 1, padding: '14px 16px', fontSize: '16px' }}
           />
-          <button type="submit" className="btn-owl" disabled={!word.trim() || loading || attemptsRemaining === 0}
+          <button type="submit" className="btn-owl" disabled={!word.trim() || loading || totalRemaining === 0}
             style={{ padding: '14px 20px', fontSize: '18px', minWidth: '54px' }}>
             {loading ? '⏳' : '→'}
           </button>
@@ -196,26 +205,31 @@ export default function HomePage() {
         </div>
       )}
 
-      {attemptsRemaining === 0 && (
+      {totalRemaining === 0 && (
         <div style={{ marginTop: '14px', padding: '18px', textAlign: 'center', background: 'rgba(127,119,221,0.08)', border: '1px solid rgba(127,119,221,0.2)', borderRadius: '14px' }}>
           <div style={{ fontSize: '28px', marginBottom: '8px' }}>🦉</div>
-          <div style={{ fontWeight: 700, marginBottom: '4px' }}>Daily limit reached!</div>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '14px' }}>Come back tomorrow or get more attempts now</div>
-          <button onClick={() => router.replace('/premium')} className="btn-owl" style={{ padding: '10px 20px', fontSize: '13px' }}>⚡ Get more attempts</button>
+          <div style={{ fontWeight: 700, marginBottom: '4px' }}>No attempts left!</div>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '14px' }}>Free attempts reset tomorrow. Get bonus attempts anytime!</div>
+          <button onClick={() => router.replace('/premium')} className="btn-owl" style={{ padding: '10px 20px', fontSize: '13px' }}>⚡ Get bonus attempts</button>
         </div>
       )}
 
-      {attemptsRemaining <= 15 && attemptsRemaining > 0 && (
+      {freeRemaining === 0 && bonusRemaining > 0 && (
+        <div style={{ marginTop: '10px', padding: '10px 14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '10px', fontSize: '12px', color: '#4ade80', textAlign: 'center' }}>
+          🎉 Using your bonus attempts — {bonusRemaining} remaining
+        </div>
+      )}
+
+      {freeRemaining <= 15 && freeRemaining > 0 && (
         <div style={{ marginTop: '10px', textAlign: 'center' }}>
           <button onClick={() => router.replace('/premium')} style={{ background: 'none', border: 'none', color: 'rgba(127,119,221,0.7)', fontSize: '12px', cursor: 'pointer' }}>
-            ⚡ Running low — get more attempts
+            ⚡ Running low on free attempts — get bonus
           </button>
         </div>
       )}
     </div>
   );
 
-  // Rooms card
   const roomsCard = (
     <div className="glass-card" style={{ padding: '20px', marginBottom: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -258,12 +272,11 @@ export default function HomePage() {
     </div>
   );
 
-  // How to play card
   const howToPlay = (
     <div className="glass-card" style={{ padding: '18px', marginBottom: '12px' }}>
       <div style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '12px' }}>How to play</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        {[['✅','Unique word','+1 point'],['❌','Already exists','-1 point'],['🎯','100 attempts','per day'],['🔤','Letters only','max 20 chars']].map(([icon,label,val]) => (
+        {[['✅','Unique word','+1 point'],['❌','Already exists','-1 point'],['🎯','100 free/day','resets daily'],['🔤','Letters only','max 20 chars']].map(([icon,label,val]) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
             <span style={{ fontSize: '16px' }}>{icon}</span>
             <div>
@@ -276,7 +289,6 @@ export default function HomePage() {
     </div>
   );
 
-  // Leaderboard card
   const leaderboardCard = (
     <div className="glass-card" style={{ padding: '20px', height: 'fit-content', position: 'sticky', top: '80px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
@@ -315,7 +327,6 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0f0f14' }}>
 
-      {/* Header */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(15,15,20,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -336,7 +347,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Mobile tabs */}
       <div className="mobile-tabs" style={{ display: 'none', background: 'rgba(15,15,20,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: '64px', zIndex: 40 }}>
         {[['play','🎮 Play'],['rooms','🏠 Rooms'],['board','🏆 Board']].map(([id,label]) => (
           <button key={id} onClick={() => setActiveTab(id)} style={{ flex: 1, padding: '12px 8px', border: 'none', background: 'transparent', color: activeTab === id ? '#7F77DD' : 'rgba(255,255,255,0.35)', fontWeight: activeTab === id ? 700 : 400, fontSize: '13px', cursor: 'pointer', borderBottom: activeTab === id ? '2px solid #7F77DD' : '2px solid transparent', transition: 'all 0.2s' }}>
@@ -346,8 +356,6 @@ export default function HomePage() {
       </div>
 
       <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
-
-        {/* Desktop layout — always visible on large screens */}
         <div className="home-grid">
           <div>
             {statsRow}
@@ -361,14 +369,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Mobile tab content */}
         <div className="mobile-tabs" style={{ display: 'none', padding: '16px', paddingBottom: '80px', flexDirection: 'column' }}>
-          {activeTab === 'play' && <>
-            {statsRow}
-            {progressBar}
-            {wordCard}
-            {howToPlay}
-          </>}
+          {activeTab === 'play' && <>{statsRow}{progressBar}{wordCard}{howToPlay}</>}
           {activeTab === 'rooms' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '4px' }}>
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -417,13 +419,12 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Mobile bottom bar */}
       <div className="mobile-bottom-bar" style={{ display: 'none', position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(15,15,20,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '10px 16px 20px', alignItems: 'center', gap: '10px', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', background: 'rgba(127,119,221,0.15)', padding: '8px 16px', borderRadius: '20px', border: '1px solid rgba(127,119,221,0.2)' }}>
           <span style={{ fontSize: '20px', fontWeight: 900, color: '#7F77DD' }}>{user.score}</span>
           <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>pts</span>
         </div>
-        <button onClick={() => router.replace('/premium')} className="btn-owl" style={{ flex: 1, padding: '12px', fontSize: '14px' }}>⚡ Get More Attempts</button>
+        <button onClick={() => router.replace('/premium')} className="btn-owl" style={{ flex: 1, padding: '12px', fontSize: '14px' }}>⚡ Get Bonus Attempts</button>
       </div>
     </div>
   );

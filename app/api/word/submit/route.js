@@ -14,15 +14,11 @@ export async function POST(req) {
 
     const { word } = await req.json();
 
-    // Validate word
     const validation = await isValidWord(word);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.reason }, { status: 400 });
-    }
+    if (!validation.valid) return NextResponse.json({ error: validation.reason }, { status: 400 });
 
     const cleanWord = word.trim().toLowerCase();
 
-    // Check and reset attempts if needed
     const userResult = await pool.query(
       'SELECT attempts_used, last_reset, total_attempts, COALESCE(bonus_attempts, 0) as bonus_attempts FROM users WHERE id = $1',
       [decoded.id]
@@ -39,16 +35,25 @@ export async function POST(req) {
       attemptsUsed = 0;
     }
 
-    const maxAttempts = 100 + user.bonus_attempts;
-    if (attemptsUsed >= maxAttempts) {
-      return NextResponse.json({ error: 'Daily limit reached! Come back tomorrow 🦉' }, { status: 400 });
+    const freeRemaining = Math.max(0, 100 - attemptsUsed);
+    const bonusRemaining = parseInt(user.bonus_attempts) || 0;
+    const totalRemaining = freeRemaining + bonusRemaining;
+
+    if (totalRemaining <= 0) {
+      return NextResponse.json({ error: 'No attempts remaining! Come back tomorrow or get more attempts 🦉' }, { status: 400 });
     }
 
-    // Check if word exists
+    // Use free attempts first, then bonus
+    if (freeRemaining > 0) {
+      await pool.query('UPDATE users SET attempts_used = attempts_used + 1, total_attempts = total_attempts + 1 WHERE id = $1', [decoded.id]);
+    } else {
+      // Use bonus attempt
+      await pool.query('UPDATE users SET bonus_attempts = bonus_attempts - 1, total_attempts = total_attempts + 1 WHERE id = $1', [decoded.id]);
+    }
+
     const wordCheck = await pool.query('SELECT id, attempt_count FROM words WHERE word = $1', [cleanWord]);
     const isUnique = wordCheck.rows.length === 0;
     const scoreChange = isUnique ? 1 : -1;
-
     let attemptCount = 0;
 
     if (isUnique) {
@@ -58,30 +63,28 @@ export async function POST(req) {
       await pool.query('UPDATE words SET attempt_count = attempt_count + 1 WHERE word = $1', [cleanWord]);
     }
 
-    // Update user
-    await pool.query(
-      'UPDATE users SET score = score + $1, attempts_used = attempts_used + 1, total_attempts = total_attempts + 1 WHERE id = $2',
-      [scoreChange, decoded.id]
-    );
+    await pool.query('UPDATE users SET score = score + $1 WHERE id = $2', [scoreChange, decoded.id]);
 
-    // Get updated user stats
     const updatedUser = await pool.query(
       'SELECT score, attempts_used, total_attempts, COALESCE(bonus_attempts, 0) as bonus_attempts FROM users WHERE id = $1',
       [decoded.id]
     );
+    const u = updatedUser.rows[0];
 
-    // Get REAL word count from database
     const wordCountResult = await pool.query('SELECT COUNT(*) as count FROM words');
     const totalWords = parseInt(wordCountResult.rows[0].count);
 
-    const updatedMaxAttempts = 100 + updatedUser.rows[0].bonus_attempts;
+    const newFreeRemaining = Math.max(0, 100 - u.attempts_used);
+    const newBonusRemaining = parseInt(u.bonus_attempts) || 0;
 
     return NextResponse.json({
       isUnique,
       scoreChange,
-      newScore: updatedUser.rows[0].score,
-      attemptsRemaining: updatedMaxAttempts - updatedUser.rows[0].attempts_used,
-      totalAttempts: updatedUser.rows[0].total_attempts,
+      newScore: u.score,
+      free_remaining: newFreeRemaining,
+      bonus_remaining: newBonusRemaining,
+      attemptsRemaining: newFreeRemaining + newBonusRemaining,
+      totalAttempts: u.total_attempts,
       totalWords,
       attemptCount: isUnique ? 0 : attemptCount
     });

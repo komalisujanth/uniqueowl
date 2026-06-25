@@ -155,7 +155,7 @@ export default function HomePage() {
             autoCorrect="off"
             spellCheck={false}
             autoFocus
-            onBlur={() => { if (attemptsRemaining > 0) setTimeout(() => inputRef.current?.focus(), 50); }}
+            
             className="input-owl"
             style={{ flex: 1, padding: '14px 16px', fontSize: '16px' }}
           />

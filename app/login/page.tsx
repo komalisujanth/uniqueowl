@@ -13,136 +13,100 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Login failed');
-        setLoading(false);
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || 'Login failed'); setLoading(false); return; }
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/home');
-    } catch {
-      setError('Something went wrong. Try again.');
-      setLoading(false);
-    }
+      router.replace('/home');
+    } catch { setError('Something went wrong. Try again.'); setLoading(false); }
   };
 
-  return (
-    <div className="min-h-screen flex" style={{background: '#f8f7ff'}}>
+  const inp = { width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', color: 'white', fontSize: '16px', outline: 'none', boxSizing: 'border-box' };
 
-      {/* Left side - hero */}
-      <div className="hidden lg:flex flex-1 flex-col justify-center px-16" style={{background: '#7F77DD'}}>
-        <div className="text-white max-w-md">
-          <div className="flex items-center gap-3 mb-8">
-            <span className="text-5xl">🦉</span>
-            <span className="text-2xl font-bold text-white">Unique Owl</span>
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', background: '#0f0f14' }}>
+
+      {/* Left hero - desktop only */}
+      <div style={{ flex: 1, display: 'none', flexDirection: 'column', justifyContent: 'center', padding: '60px', background: 'linear-gradient(135deg, #1a0f3c, #0f0f14)' }} className="desktop-hero">
+        <div style={{ maxWidth: '440px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
+            <span style={{ fontSize: '48px' }}>🦉</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>Unique Owl</span>
           </div>
-          <h1 className="text-5xl font-black leading-tight mb-6 text-white">
+          <h1 style={{ fontSize: '48px', fontWeight: 900, color: 'white', lineHeight: 1.15, marginBottom: '20px' }}>
             Think you're one of a kind?
           </h1>
-          <p className="text-xl mb-10 leading-relaxed text-white" style={{opacity: 0.85}}>
+          <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, marginBottom: '40px' }}>
             Millions of people think they think differently. Only a few actually do. Prove it.
           </p>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4 rounded-2xl p-4" style={{background: 'rgba(255,255,255,0.15)'}}>
-              <span className="text-2xl">🧠</span>
-              <div>
-                <div className="font-semibold text-white">Submit unique words</div>
-                <div className="text-sm text-white" style={{opacity: 0.75}}>Nobody else can have thought of it</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {[['🧠','Submit unique words','Nobody else can have thought of it'],['🏆','Climb the leaderboard','Compete with players worldwide'],['🎮','Play with friends','Guess Me & Big Brains rooms']].map(([icon,title,sub]) => (
+              <div key={title} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ fontSize: '24px' }}>{icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, color: 'white', fontSize: '15px' }}>{title}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginTop: '2px' }}>{sub}</div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4 rounded-2xl p-4" style={{background: 'rgba(255,255,255,0.15)'}}>
-              <span className="text-2xl">🏆</span>
-              <div>
-                <div className="font-semibold text-white">Climb the leaderboard</div>
-                <div className="text-sm text-white" style={{opacity: 0.75}}>Compete with players worldwide</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 rounded-2xl p-4" style={{background: 'rgba(255,255,255,0.15)'}}>
-              <span className="text-2xl">🎮</span>
-              <div>
-                <div className="font-semibold text-white">Play with friends</div>
-                <div className="text-sm text-white" style={{opacity: 0.75}}>Guess Me & Big Brains rooms</div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Right side - form */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12">
-        <div className="w-full max-w-sm">
+      {/* Right form */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px 24px' }}>
+        <div style={{ width: '100%', maxWidth: '380px' }}>
 
           {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <span className="text-4xl">🦉</span>
-            <span className="text-xl font-bold" style={{color: '#7F77DD'}}>Unique Owl</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px', justifyContent: 'center' }}>
+            <span style={{ fontSize: '36px' }}>🦉</span>
+            <span style={{ fontSize: '20px', fontWeight: 800, color: 'white' }}>Unique Owl</span>
           </div>
 
-          <h2 className="text-3xl font-black mb-2" style={{color: '#1a1a2e'}}>Welcome back</h2>
-          <p className="text-gray-500 mb-8">Sign in to prove your originality</p>
+          <h2 style={{ fontSize: '28px', fontWeight: 900, color: 'white', marginBottom: '6px' }}>Welcome back</h2>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', marginBottom: '28px' }}>Sign in to prove your originality</p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-600">Email</label>
-              <input
-                type="email"
-                placeholder="you@email.com"
-                value={form.email}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '6px' }}>Email</label>
+              <input type="email" placeholder="you@email.com" value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="input input-bordered w-full"
-                required
-              />
+                style={inp} required />
             </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-600">Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
+            <div>
+              <label style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '6px' }}>Password</label>
+              <input type="password" placeholder="••••••••" value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="input input-bordered w-full"
-                required
-              />
+                style={inp} required />
             </div>
 
             {error && (
-              <div className="alert alert-error text-sm py-2">
-                <span>{error}</span>
+              <div style={{ padding: '12px 14px', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '10px', color: '#f87171', fontSize: '14px' }}>
+                {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              className="btn w-full text-white font-bold mt-2"
-              style={{background: '#7F77DD', borderColor: '#7F77DD'}}
-              disabled={loading}
-            >
-              {loading ? <span className="loading loading-spinner"></span> : 'Sign in to prove it →'}
+            <button type="submit" disabled={loading}
+              style={{ width: '100%', padding: '14px', background: loading ? 'rgba(127,119,221,0.5)' : 'linear-gradient(135deg,#7F77DD,#5a52b8)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', marginTop: '4px' }}>
+              {loading ? 'Signing in...' : 'Sign in to prove it →'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-4">
-            <Link href="/forgot-password" className="font-semibold" style={{color: '#7F77DD'}}>
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <Link href="/forgot-password" style={{ color: 'rgba(127,119,221,0.8)', fontSize: '13px', textDecoration: 'none' }}>
               Forgot password?
             </Link>
-          </p>
+          </div>
 
-          <p className="text-center text-sm text-gray-500 mt-3">
+          <p style={{ textAlign: 'center', marginTop: '20px', color: 'rgba(255,255,255,0.4)', fontSize: '14px' }}>
             New here?{' '}
-            <Link href="/signup" className="font-semibold" style={{color: '#7F77DD'}}>
+            <Link href="/signup" style={{ color: '#7F77DD', fontWeight: 600, textDecoration: 'none' }}>
               Create an account
             </Link>
           </p>

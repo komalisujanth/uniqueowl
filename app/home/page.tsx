@@ -41,6 +41,13 @@ export default function HomePage() {
     fetchLeaderboard();
   }, []);
 
+  // Keep input focused always
+  useEffect(() => {
+    if (!loading) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [loading, result, error, activeTab]);
+
   const fetchProfile = async () => {
     try {
       const res = await fetch('/api/user/profile', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
@@ -66,7 +73,7 @@ export default function HomePage() {
         body: JSON.stringify({ word: word.trim() })
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error); setLoading(false); return; }
+      if (!res.ok) { setError(data.error); setLoading(false); setTimeout(() => inputRef.current?.focus(), 50); return; }
       setResult(data);
       setResultMsg(data.isUnique ? rnd(UNIQUE_MESSAGES) : rnd(DUPLICATE_MESSAGES));
       setUser(prev => ({ ...prev, score: data.newScore, attempts_remaining: data.attemptsRemaining, total_attempts: data.totalAttempts, totalWords: data.totalWords }));
@@ -74,6 +81,7 @@ export default function HomePage() {
       fetchLeaderboard();
     } catch { setError('Something went wrong. Try again.'); }
     setLoading(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   const handleShare = () => {
@@ -102,7 +110,6 @@ export default function HomePage() {
 
   const PlaySection = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Stats row */}
       <div className="glass-card" style={{ padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr', gap: '0', alignItems: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '32px', fontWeight: 900, color: '#7F77DD' }}>{attemptsRemaining}</div>
@@ -123,12 +130,10 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Progress bar */}
       <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
         <div style={{ height: '100%', background: pct > 30 ? '#7F77DD' : '#ef4444', width: `${pct}%`, transition: 'width 0.5s ease', borderRadius: '2px' }}/>
       </div>
 
-      {/* Word input card */}
       <div className="glass-card" style={{ padding: '24px' }}>
         <div style={{ marginBottom: '18px' }}>
           <h2 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '4px' }}>
@@ -148,6 +153,7 @@ export default function HomePage() {
               maxLength={20}
               disabled={attemptsRemaining === 0 || loading}
               autoComplete="off" autoCorrect="off" spellCheck={false}
+              autoFocus
               className="input-owl"
               style={{ flex: 1, padding: '14px 16px', fontSize: '16px' }}
             />
@@ -208,7 +214,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Game Rooms */}
       <div className="glass-card" style={{ padding: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Game Rooms</h3>
@@ -234,7 +239,6 @@ export default function HomePage() {
               {['Multiplayer','Up to 20','60s rounds'].map(t => <span key={t} className="badge-owl" style={{ background: 'rgba(127,119,221,0.25)', color: '#a29bfe' }}>{t}</span>)}
             </div>
           </div>
-
           <div onClick={() => router.replace('/room?type=bigbrains&action=create')}
             style={{ background: 'linear-gradient(135deg, rgba(61,40,0,0.6), rgba(31,20,0,0.6))', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '14px', padding: '16px', cursor: 'pointer', transition: 'all 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.border='1px solid rgba(245,158,11,0.5)'}
@@ -254,7 +258,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* How to play */}
       <div className="glass-card" style={{ padding: '18px' }}>
         <div style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '12px' }}>How to play</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -311,7 +314,6 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f0f14' }}>
-      {/* Sticky header */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(15,15,20,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -321,8 +323,6 @@ export default function HomePage() {
               <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>{user.user_id}</div>
             </div>
           </div>
-
-          {/* Desktop nav */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', padding: '6px 16px', background: 'rgba(127,119,221,0.15)', borderRadius: '20px', border: '1px solid rgba(127,119,221,0.25)' }}>
               <span style={{ fontSize: '22px', fontWeight: 900, color: '#7F77DD' }}>{user.score}</span>
@@ -334,7 +334,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Mobile tabs */}
       <div className="mobile-tabs" style={{ display: 'none', background: 'rgba(15,15,20,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: '64px', zIndex: 40 }}>
         {[['play','🎮 Play'],['rooms','🏠 Rooms'],['board','🏆 Board']].map(([id,label]) => (
           <button key={id} onClick={() => setActiveTab(id)} style={{ flex: 1, padding: '12px 8px', border: 'none', background: 'transparent', color: activeTab === id ? '#7F77DD' : 'rgba(255,255,255,0.35)', fontWeight: activeTab === id ? 700 : 400, fontSize: '13px', cursor: 'pointer', borderBottom: activeTab === id ? '2px solid #7F77DD' : '2px solid transparent', transition: 'all 0.2s' }}>
@@ -343,19 +342,14 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Main content */}
       <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Desktop: always show both */}
+        {/* Desktop layout */}
         <div className="home-grid">
-          <div>
-            <PlaySection />
-          </div>
-          <div className="desktop-sidebar" style={{ display: 'none' }}>
-            <LeaderboardSection />
-          </div>
+          <div><PlaySection /></div>
+          <div className="desktop-sidebar" style={{ display: 'none' }}><LeaderboardSection /></div>
         </div>
 
-        {/* Mobile: tab-based */}
+        {/* Mobile tab content */}
         <div style={{ padding: '0 16px 80px' }}>
           <div className="mobile-tabs" style={{ display: 'none' }}>
             {activeTab === 'play' && <PlaySection />}
@@ -408,7 +402,6 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Mobile bottom bar */}
       <div className="mobile-bottom-bar" style={{ display: 'none', position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(15,15,20,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '10px 16px 20px', alignItems: 'center', gap: '10px', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', background: 'rgba(127,119,221,0.15)', padding: '8px 16px', borderRadius: '20px', border: '1px solid rgba(127,119,221,0.2)' }}>
           <span style={{ fontSize: '20px', fontWeight: 900, color: '#7F77DD' }}>{user.score}</span>

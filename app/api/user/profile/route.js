@@ -20,7 +20,7 @@ export async function GET(req) {
 
     const user = result.rows[0];
 
-    // Reset attempts if 24 hours have passed
+    // Reset attempts if 24 hours passed
     const now = new Date();
     const lastReset = new Date(user.last_reset);
     const hoursSince = (now - lastReset) / (1000 * 60 * 60);
@@ -31,14 +31,16 @@ export async function GET(req) {
       attemptsUsed = 0;
     }
 
-    // Get total words in database
-    const wordCount = await pool.query('SELECT COUNT(*) as count FROM words');
-    const totalWords = parseInt(wordCount.rows[0].count);
+    // Get REAL word count
+    const wordCountResult = await pool.query('SELECT COUNT(*) as count FROM words');
+    const totalWords = parseInt(wordCountResult.rows[0].count);
+
+    const maxAttempts = 100 + user.bonus_attempts;
 
     return NextResponse.json({
       ...user,
       attempts_used: attemptsUsed,
-      attempts_remaining: (100 + user.bonus_attempts) - attemptsUsed,
+      attempts_remaining: maxAttempts - attemptsUsed,
       total_attempts: user.total_attempts || 0,
       totalWords
     });

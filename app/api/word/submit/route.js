@@ -22,9 +22,9 @@ export async function POST(req) {
 
     const cleanWord = word.trim().toLowerCase();
 
-    // Check attempts
+    // Check and reset attempts if needed
     const userResult = await pool.query(
-      'SELECT attempts_used, last_reset, total_attempts FROM users WHERE id = $1',
+      'SELECT attempts_used, last_reset, total_attempts, COALESCE(bonus_attempts, 0) as bonus_attempts FROM users WHERE id = $1',
       [decoded.id]
     );
     const user = userResult.rows[0];
@@ -39,48 +39,50 @@ export async function POST(req) {
       attemptsUsed = 0;
     }
 
-    if (attemptsUsed >= 100) {
+    const maxAttempts = 100 + user.bonus_attempts;
+    if (attemptsUsed >= maxAttempts) {
       return NextResponse.json({ error: 'Daily limit reached! Come back tomorrow 🦉' }, { status: 400 });
     }
 
-    // Check if word exists and get attempt count
+    // Check if word exists
     const wordCheck = await pool.query('SELECT id, attempt_count FROM words WHERE word = $1', [cleanWord]);
     const isUnique = wordCheck.rows.length === 0;
     const scoreChange = isUnique ? 1 : -1;
 
-    // Get total words count
-    const totalWordsResult = await pool.query('SELECT COUNT(*) as count FROM words');
-    const totalWords = parseInt(totalWordsResult.rows[0].count);
-
     let attemptCount = 0;
 
     if (isUnique) {
-      // Add new word
-      await pool.query('INSERT INTO words (word, attempt_count) VALUES ($1, 1)', [cleanWord]);
+      await pool.query('INSERT INTO words (word, attempt_count) VALUES ($1, 1) ON CONFLICT (word) DO NOTHING', [cleanWord]);
     } else {
-      // Increment attempt count
-      attemptCount = wordCheck.rows[0].attempt_count + 1;
+      attemptCount = (wordCheck.rows[0].attempt_count || 0) + 1;
       await pool.query('UPDATE words SET attempt_count = attempt_count + 1 WHERE word = $1', [cleanWord]);
     }
 
-    // Update user score and attempts
+    // Update user
     await pool.query(
       'UPDATE users SET score = score + $1, attempts_used = attempts_used + 1, total_attempts = total_attempts + 1 WHERE id = $2',
       [scoreChange, decoded.id]
     );
 
+    // Get updated user stats
     const updatedUser = await pool.query(
-      'SELECT score, attempts_used, total_attempts FROM users WHERE id = $1',
+      'SELECT score, attempts_used, total_attempts, COALESCE(bonus_attempts, 0) as bonus_attempts FROM users WHERE id = $1',
       [decoded.id]
     );
+
+    // Get REAL word count from database
+    const wordCountResult = await pool.query('SELECT COUNT(*) as count FROM words');
+    const totalWords = parseInt(wordCountResult.rows[0].count);
+
+    const updatedMaxAttempts = 100 + updatedUser.rows[0].bonus_attempts;
 
     return NextResponse.json({
       isUnique,
       scoreChange,
       newScore: updatedUser.rows[0].score,
-      attemptsRemaining: 100 - updatedUser.rows[0].attempts_used,
+      attemptsRemaining: updatedMaxAttempts - updatedUser.rows[0].attempts_used,
       totalAttempts: updatedUser.rows[0].total_attempts,
-      totalWords: isUnique ? totalWords + 1 : totalWords,
+      totalWords,
       attemptCount: isUnique ? 0 : attemptCount
     });
   } catch (err) {
